@@ -1,7 +1,7 @@
 
 module Scheme
-include("Private.jl")
 import(Random)
+import(Primes)
 export generate
 
 function generate(lam,rho,eta,gam,Theta,alpha,tau,l)
@@ -77,6 +77,32 @@ function generate(lam,rho,eta,gam,Theta,alpha,tau,l)
 
 
 end
+
+#HELPER
+function mod_near(a,b)
+    quotient_near = (2*a+b)÷(2*b)
+    return a-b*quotient_near
+end
+
+function make_u()
+
+
+end
+
+function make_deltas()
+
+
+end
+
+function random_primes(lo,hi)
+    list = Primes.primes(lo,hi)
+    function p()
+        list[rand(1:length(list))]
+    end
+    return p
+end
+
+
 
 
 
