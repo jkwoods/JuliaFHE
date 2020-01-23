@@ -1,14 +1,30 @@
 
 module Scheme
-
+include("Private.jl")
 export generate
 
-function generate(x)
+function generate(lam,rho,eta,gam,Theta,alpha,tau,l)
+    rhoi    = rho+lam
+    alphai  = alpha+lam
+    theta   = Theta÷l
+    kap     = 64*(gam÷64+1)
+    logl    = round(Int64,log(2,l))
+    p       = rand((2^(eta-1):2^eta),l)
+    pi      = reduce(*,p)
 
+    q0      = 2^gam
+    #TODO MAKE q0
 
+    x0      = pi*q0
+    x       = make_deltas()
+    xi      = make_deltas()
+    ii      = make_deltas()
 
+    s       =
+    rv_s    = transpose(s)
 
-
+    u       = make_u()
+    o       = make_deltas()
 
     Encrypt = function(m::Array)
         b   = rand((-2^alpha:2^self.alpha),tau)
@@ -16,11 +32,11 @@ function generate(x)
 
         sum = reduce(+,(m .+ xi)) + reduce(+, (b .* x)) + reduce(+,(bi .* ii)) #TODO check if broadcasting is what we want here
 
-        return modNear(sum,x0)
+        return mod_near(sum,x0)
     end
 
     Decrypt = function(c)
-        [modNear(c,p[i]) % 2 for i in 1:l]
+        [mod_near(c,p[i]) % 2 for i in 1:l]
     end
 
     Recrypt = function(c)
