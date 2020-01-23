@@ -1,7 +1,8 @@
 include("Scheme.jl")
-
+include("Private.jl")
 println("Running Tests")
 println("Making Scheme")
+
 
 lam     = 12
 rho     = 26

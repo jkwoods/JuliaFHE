@@ -1,6 +1,7 @@
 
 module Scheme
 include("Private.jl")
+import(Random)
 export generate
 
 function generate(lam,rho,eta,gam,Theta,alpha,tau,l)
@@ -13,14 +14,30 @@ function generate(lam,rho,eta,gam,Theta,alpha,tau,l)
     pi      = reduce(*,p)
 
     q0      = 2^gam
-    #TODO MAKE q0
+    measure = 100#(2^gam)÷pi
+    prime_gen = random_primes(0,2^(lam^2))
+    while q0 > measure
+        q0prime1 = prime_gen()
+        q0prime2 = prime_gen()
+        q0 = q0prime1*q0prime2
+    end
 
     x0      = pi*q0
     x       = make_deltas()
     xi      = make_deltas()
     ii      = make_deltas()
 
-    s       =
+    s       = zeros(Int64,l,Theta)
+    for i=1:l
+        s[i,i] = 1
+    end
+    for t=2:theta
+        shuffled = Random.shuffle([i for i=1:l])
+        for j=1:l
+            k = (l*t)+shuffled[i]
+            s[j,k] = 1;
+    end
+
     rv_s    = transpose(s)
 
     u       = make_u()
