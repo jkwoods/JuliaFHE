@@ -11,24 +11,18 @@ module Scheme
         theta   = Theta÷l
         kap     = 64*(gam÷64+1)
         logl    = round(Int64,log(2,l))
-        p       = [big(rand(2^(eta-1):2^eta)) for i=1:l]
+        p       = [big(rand(2^big(eta-1):2^big(eta))) for i=1:l]
         pi      = reduce(*,p)
 
         q0      = 2^big(gam)
-        measure = q0÷pi
-        prime_gen = random_primes(0,2^(lam^2))
+        measure = q0 ÷ pi
         while q0 > measure
-            q0prime1 = prime_gen()
-            q0prime2 = prime_gen()
+            q0prime1 = random_prime(0,2^big(lam^2))
+            q0prime2 = random_prime(0,2^big(lam^2))
             q0 = q0prime1*q0prime2
         end
 
         x0      = pi*q0
-
-        e_range = (2^(lam+logl+(l*eta))) ÷ pi
-        x       = make_deltas(tau,x0,(rhoi+1),rhoi,e_range,l,p,pi,rv_s,0)
-        xi      = make_deltas(l,x0,rho,rhoi,e_range,l,p,pi,rv_s,1)
-        ii      = make_deltas(l,x0,rho,rhoi,e_range,l,p,pi,rv_s,2)
 
         s       = zeros(Int64,l,Theta)
         for i=1:l
@@ -43,6 +37,11 @@ module Scheme
         end
 
         rv_s    = transpose(s)
+
+        e_range = big(2^(lam+logl+(l*eta))) ÷ pi
+        x       = make_deltas(tau,x0,(rhoi+1),rhoi,e_range,l,p,pi,rv_s,0)
+        xi      = make_deltas(l,x0,rho,rhoi,e_range,l,p,pi,rv_s,1)
+        ii      = make_deltas(l,x0,rho,rhoi,e_range,l,p,pi,rv_s,2)
 
         u       = make_u(p,l,Theta,kap)
         o       = make_deltas(Theta,x0,rho,rhoi,e_range,l,p,pi,rv_s,3)
@@ -178,17 +177,17 @@ module Scheme
         return x
     end
 
-    function pseudo_random_ints(seed,len,range)
-        new_rand = Random.MersenneTwister(seed)
+    function pseudo_random_ints(s,len,range)
+        new_rand = Random.MersenneTwister(s)
         return rand(new_rand, 1:range, len)
     end
 
-    function random_primes(lo,hi)
-        list = Primes.primes(lo,hi)
-        function p()
-            list[rand(1:length(list))]
+    function random_prime(lo,hi)
+        possible = rand(lo:hi)
+        while !Primes.isprime(possible)
+            possible = rand(lo:hi)
         end
-        return p
+        return possible
     end
 
 end
