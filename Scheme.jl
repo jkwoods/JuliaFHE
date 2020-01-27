@@ -5,13 +5,15 @@ module Scheme
     export generate
 
     #TODO make sure types are not being converted/this is still (relatively) fast
+    #TODO put pri stuff in the right places, etc
+
     function generate(lam,rho,eta,gam,Theta,alpha,tau,l)
         rhoi    = rho+lam
         alphai  = alpha+lam
         theta   = Theta÷l
         kap     = 64*(gam÷64+1)
         logl    = round(Int64,log(2,l))
-        p       = [big(rand(2^big(eta-1):2^big(eta))) for i=1:l]
+        p       = [random_prime(2^big(eta-1),2^big(eta)) for i=1:l]
         pi      = reduce(*,p)
 
         q0      = 2^big(gam)
@@ -36,15 +38,14 @@ module Scheme
             end
         end
 
-        rv_s    = transpose(s)
+        e_range = (2^(lam+logl+big(l*eta)) ÷ pi) #-1
 
-        e_range = big(2^(lam+logl+(l*eta))) ÷ pi
-        x       = make_deltas(tau,x0,(rhoi+1),rhoi,e_range,l,p,pi,rv_s,0)
-        xi      = make_deltas(l,x0,rho,rhoi,e_range,l,p,pi,rv_s,1)
-        ii      = make_deltas(l,x0,rho,rhoi,e_range,l,p,pi,rv_s,2)
+        x       = make_deltas(tau,x0,(rhoi-1),rhoi,e_range,l,p,pi,s,0)
+        xi      = make_deltas(l,x0,rho,rhoi,e_range,l,p,pi,s,1)
+        ii      = make_deltas(l,x0,rho,rhoi,e_range,l,p,pi,s,2)
 
-        u       = make_u(p,l,Theta,kap)
-        o       = make_deltas(Theta,x0,rho,rhoi,e_range,l,p,pi,rv_s,3)
+        u       = make_u(p,l,Theta,kap,s)
+        o       = make_deltas(Theta,x0,rho,rhoi,e_range,l,p,pi,s,3)
 
         Encrypt = function(m)
             b   = rand((-2^alpha:2^self.alpha),tau)
@@ -108,12 +109,17 @@ module Scheme
     end
 
     function CRT(pi,n,a) #Chinese Remainder Thm
-        sum = reduce(+, [a[i] * mul_inv(p,n[i]) * (pi ÷ n[i]) for i=1:length(n)])
+        sum = 0
+        #prod = pi
+        for i=1:length(n)
+            p = pi ÷ n[i]
+            sum += a[i] * mul_inv(p,n[i]) * p
+        end
         return sum % pi
     end
 
-    function make_u(p,l,Theta,kap)
-        kapsq = 2^(kap+1)
+    function make_u(p,l,Theta,kap,s)
+        kapsq = 2^big(kap+1)
 
         seed = time() #TODO better seed
         u_draft = pseudo_random_ints(seed,Theta,kapsq)
@@ -148,25 +154,26 @@ module Scheme
         return u_draft
     end
 
-    function make_deltas(len,x0,var_rho,rhoi,e_range,l,p,pi,rv_s,switch)
+    function make_deltas(len,x0,var_rho,rhoi,e_range,l,p,pi,s,switch)
         #make PRI
         seed = time() #TODO better seed
         Chi = pseudo_random_ints(seed,len,x0)
 
         #make deltas
-        r = rand(((-2)^(var_rho+1):2^var_rho),len,l)
+        r = rand((-(2^var_rho)+1:(2^var_rho)-1),len,l)
         E = rand((0:e_range),len)
         twor = r .* 2
 
         if switch == 0
-            crts = [CRT(pi,p,twor) for j=1:len]
+            print(twor[1,:])
+            crts = [CRT(pi,p,twor[i,:]) for i=1:len]
         elseif switch == 1
-            crts = [CRT(pi,p,[twor[i]+kd(i,j) for i=1:l]) for j=1:len]
+            crts = [CRT(pi,p,[twor[i,j]+kd(i,j) for j=1:l]) for i=1:len]
         elseif switch == 2
             rhoisq = 2^(rhoi+1)
-            crts = [CRT(pi,p,[twor[i]+(kd(i,j)*rhoisq) for i=1:l]) for j=1:len]
+            crts = [CRT(pi,p,[twor[i,j]+(kd(i,j)*rhoisq) for j=1:l]) for i=1:len]
         else #o
-            crts = [CRT(pi,p,[twor[i]+rv_s[j,i] for i=1:l]) for j=1:len]
+            crts = [CRT(pi,p,[twor[i,j]+s[j,i] for j=1:l]) for i=1:len]
         end
 
         temp = Chi .% pi #check if we can condense
@@ -177,9 +184,9 @@ module Scheme
         return x
     end
 
-    function pseudo_random_ints(s,len,range)
-        new_rand = Random.MersenneTwister(s)
-        return rand(new_rand, 1:range, len)
+    function pseudo_random_ints(seed,len,range)
+        #seed!(seed)
+        return rand(1:range, len)
     end
 
     function random_prime(lo,hi)
