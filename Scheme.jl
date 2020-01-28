@@ -16,6 +16,7 @@ module Scheme
         alpha::BigInt   = p_alpha
         tau::Int64      = p_tau
         l::Int64        = p_l
+        n::Int64        = 4
 
         rhoi::BigInt         = rho+lam
         alphai::BigInt       = alpha+lam
@@ -71,7 +72,36 @@ module Scheme
         end
 
         Recrypt = function(c::BigInt)
-            big(-1)
+            #expand
+            z::Array{Int64,2} = zeros(Int64,Theta,n+1)
+            kap2::BigInt = 2^kap
+            for i=1:Theta
+                zi::BigFloat = mod((c * (u[i]/kap2)),2)
+
+                #multiply by 2^n bits of precision
+                zi_mult::BigFloat = zi * (2^n)
+                #truncate  TODO check correct? round/trunc/floor/what
+                zi_int::Int64 = round(Int64, zi_mult)
+                if (zi_mult - zi_int) > 0.5 #TODO figure this crap out
+                    println("needed??")
+                    zi_int += 1
+                end
+
+                zi_bin::Array{Int64,1} = to_binary(zi_int, n+1)
+                z[i,:] = zi_bin
+            end
+
+            z_sk::Array{BigInt,1} = [z[i,j]*o[i] for i=1:Theta, j=1:(n+1))]
+
+            a::Array{BigInt,1} = zeros(Int64,n+1)
+            for i=1:Theta
+                a = sum_binary(a,z_sk[i,:])
+            end
+
+            round::BigInt = a[length(a)] + a[length(a)-1] + (c & 1)
+
+            return c
+
         end
 
         Add = function(a::BigInt,b::BigInt)
@@ -92,6 +122,20 @@ module Scheme
         quotient_near::BigInt = fld((2*a+b),(2*b))
         ans::BigInt = a-b*quotient_near
         return ans
+    end
+
+    function to_binary(a::Int64, bits::Int64) #[0,1,...,n] = [LSB, ... MSB]
+        str = split(bitstring(a),"")
+        result::Array{Int64,1} = [parse(Int64, str[length(str)-i]) for i=0:(bits-1)]
+        return result
+    end
+
+    function sum_binary(a::Array{BigInt,1}, b::Array{BigInt,1})
+        c::Array{BigInt,1} = [a[0]+b[0]]
+        carry::BigInt = a[0]*b[0]
+
+        #TODO
+
     end
 
     function kd(i,j)

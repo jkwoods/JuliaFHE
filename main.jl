@@ -16,16 +16,18 @@ Encrypt, Decrypt, Recrypt, Add, Mult = Scheme.generate(lam,rho,eta,gam,Theta,alp
 println("Key Made")
 
 one = [1,0,1,1,0,0,0,1,1,1]
-zero = [0,0,0,0,0,0,0,0,0,0]
+zero = [0,0,0,0,0,1,1,1,0,0]
 
 println("Encrypt")
-one_c = Encrypt(one)
-zero_c = Encrypt(zero)
+c1 = Encrypt(one)
+c0 = Encrypt(zero)
+
+a = c1+c0
 
 println("Decrypt")
 
-one_d = Decrypt(one_c)
-zero_d = Decrypt(zero_c)
+dc1 = Decrypt(c1)
+da = Decrypt(a)
 
-println(one_d)
-println(zero_d)
+println(dc1)
+println(da)
