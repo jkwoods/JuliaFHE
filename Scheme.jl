@@ -19,7 +19,7 @@ module Scheme
         pi      = reduce(*,p)
 
         q0      = 2^big(gam)
-        measure = q0 ÷ pi
+        measure = fld(q0,pi)
         while q0 > measure
             q0prime1 = random_prime(0,2^big(lam^2))
             q0prime2 = random_prime(0,2^big(lam^2))
@@ -40,7 +40,7 @@ module Scheme
             end
         end
 
-        e_range = (2^(lam+logl+big(l*eta)) ÷ pi) #-1
+        e_range = fld(2^(lam+logl+big(l*eta)),pi) #-1
 
         x       = make_deltas(tau,x0,(rhoi-1),rhoi,e_range,l,p,pi,s,0)
         xi      = make_deltas(l,x0,rho,rhoi,e_range,l,p,pi,s,1)
@@ -59,7 +59,7 @@ module Scheme
         end
 
         Decrypt = function(c)
-            [mod_range(mod_near(c,p[i]),2) for i in 1:l]
+            [mod(mod_near(c,p[i]),2) for i in 1:l]
         end
 
         Recrypt = function(c)
@@ -67,11 +67,11 @@ module Scheme
         end
 
         Add = function(a,b)
-            mod_range((a+b),x0)
+            mod((a+b),x0)
         end
 
         Mult = function(a,b)
-            mod_range((a*b),x0)
+            mod((a*b),x0)
         end
 
         return Encrypt, Decrypt, Recrypt, Add, Mult
@@ -81,19 +81,8 @@ module Scheme
 
     #HELPER
     function mod_near(a,b)
-        quotient_near = (2*a+b)÷(2*b)
+        quotient_near = fld((2*a+b),(2*b))
         return a-b*quotient_near
-    end
-
-    function mod_range(a,b)
-        mod = a % b
-        if mod < 0
-            return mod + b
-        elseif mod > b
-            return mod - b
-        else
-            return mod
-        end
     end
 
     function kd(i,j)
@@ -111,8 +100,8 @@ module Scheme
             return 1
         end
         while a > 1
-            q = a ÷ b
-            a, b = b, mod_range(a,b)
+            q = fld(a,b)
+            a, b = b, mod(a,b)
             x0, x1 = (x1 - q * x0), x0
         end
         if x1 < 0
@@ -125,10 +114,10 @@ module Scheme
         sum = 0
         #prod = pi
         for i=1:length(n)
-            p = pi ÷ n[i]
+            p = fld(pi,n[i])
             sum += a[i] * mul_inv(p,n[i]) * p
         end
-        return mod_range(sum,pi)
+        return mod(sum,pi)
     end
 
     function make_u(p,l,Theta,kap,s)
@@ -138,9 +127,9 @@ module Scheme
         u_draft = pseudo_random_ints(seed,Theta,kapsq)
 
         for j=1:l
-            xpj = (2^kap)÷p[j]  #TODO correct div? need floor?
+            xpj = fld((2^kap),p[j])  #TODO correct div? need floor?
             u_mults = [s[j,i]*u_draft[i] for i=1:Theta]
-            u_sum = mod_range(reduce(+, u_mults),kapsq)
+            u_sum = mod(reduce(+, u_mults),kapsq)
 
             while u_sum != xpj
                 #pick random index
@@ -161,7 +150,7 @@ module Scheme
 
                 #redo for while check
                 u_mults = [s[j,i]*u_draft[i] for i=1:Theta]
-                u_sum = mod_range(reduce(+, u_mults),kapsq)
+                u_sum = mod(reduce(+, u_mults),kapsq)
             end
         end
         return u_draft
@@ -179,6 +168,7 @@ module Scheme
 
         if switch == 0
             crts = [CRT(pi,p,twor[i,:]) for i=1:len]
+            println(crts)
         elseif switch == 1
             crts = [CRT(pi,p,[twor[i,j]+kd(i,j) for j=1:l]) for i=1:len]
         elseif switch == 2
@@ -188,7 +178,7 @@ module Scheme
             crts = [CRT(pi,p,[twor[i,j]+s[j,i] for j=1:l]) for i=1:len]
         end
 
-        temp = [mod_range(Chi[i],pi) for i=1:len] #Chi .% pi #check if we can condense
+        temp = [mod(Chi[i],pi) for i=1:len] #Chi .% pi #check if we can condense
         deltas = temp .+ (E .* pi) .- crts
 
         #make the list of PRI - deltas
