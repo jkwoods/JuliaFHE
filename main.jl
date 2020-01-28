@@ -13,12 +13,12 @@ tau     = 188
 l       = 10
 
 Encrypt, Decrypt, Recrypt, Add, Mult = Scheme.generate(lam,rho,eta,gam,Theta,alpha,tau,l)
+println("Key Made")
 
-println("Encrypt")
-
-one = [1,1,1,1,1,1,1,1,1,1]
+one = [1,0,1,1,0,0,0,1,1,1]
 zero = [0,0,0,0,0,0,0,0,0,0]
 
+println("Encrypt")
 one_c = Encrypt(one)
 zero_c = Encrypt(zero)
 
