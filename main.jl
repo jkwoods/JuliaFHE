@@ -9,25 +9,31 @@ eta     = 1988
 gam     = 147456
 Theta   = 150
 alpha   = 936
-tau     = 188
+tau     = 412
 l       = 10
 
-Encrypt, Decrypt, Recrypt, Add, Mult = Scheme.generate(lam,rho,eta,gam,Theta,alpha,tau,l)
+Encrypt, Decrypt, Recrypt, Add, Mult, KeyCorrect = Scheme.generate(lam,rho,eta,gam,Theta,alpha,tau,l)
 println("Key Made")
 
-one = [1,0,1,1,0,0,0,1,1,1]
-zero = [0,0,0,0,0,1,1,1,0,0]
+println(KeyCorrect())
+
+one  = [1,1,1,1,1,1,1,1,1,1]
+zero = [0,1,1,0,0,1,1,1,0,0]
+br =   [1,1,1,1,0,0,0,1,1,0]
 
 println("Encrypt")
 c1 = Encrypt(one)
 c0 = Encrypt(zero)
+cb = Encrypt(br)
 
-a = c1+c0
+a = Mult(c1,c0)
+println(Decrypt(a))
 
-println("Decrypt")
+b = Mult(a,c1)
+println(Decrypt(b))
 
-dc1 = Decrypt(c1)
-da = Decrypt(a)
+a = Recrypt(a)
+println(Decrypt(a))
 
-println(dc1)
-println(da)
+b = Mult(a,c1)
+println(Decrypt(b))

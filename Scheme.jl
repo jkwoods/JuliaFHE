@@ -75,23 +75,33 @@ module Scheme
             #expand
             z::Array{Int64,2} = zeros(Int64,Theta,n+1)
             kap2::BigInt = 2^kap
+
             for i=1:Theta
-                zi::BigFloat = mod((c * (u[i]/kap2)),2)
+                yi = u[i]//kap2
+                zi = c * yi
+                zim = mod(zi,2)
 
                 #multiply by 2^n bits of precision
-                zi_mult::BigFloat = zi * (2^n)
-                #truncate  TODO check correct? round/trunc/floor/what
-                zi_int::Int64 = round(Int64, zi_mult)
-                if (zi_mult - zi_int) > 0.5 #TODO figure this crap out
-                    println("needed??")
-                    zi_int += 1
-                end
+                zi_int::Int64 = Base.trunc(Int64, zim*(2^n))
+                #println(zi_int)
 
-                zi_bin::Array{Int64,1} = to_binary(zi_int, n+1)
+                zi_bin::Array{Int64,1} = to_binary(zi_int, (n+1))
+                #println(zi_bin)
+
                 z[i,:] = zi_bin
             end
 
-            z_sk::Array{BigInt,1} = [z[i,j]*o[i] for i=1:Theta, j=1:(n+1))]
+            z_sk::Array{BigInt,2} = [z[i,j]*o[i] for i=1:Theta, j=1:(n+1)]
+
+            TEMP::Array{Array{Int64,1},2} = [Decrypt(z_sk[i,j]) for i=1:Theta, j=1:(n+1)]
+            for i=1:Theta
+                #print(z[i,:])
+                for j=1:(n+1)
+                    print(findall(x->x==1, TEMP[i,j]))
+                end
+                print("s =", s[:,i])
+                print("\n\n\n")
+            end
 
             a::Array{BigInt,1} = zeros(Int64,n+1)
             for i=1:Theta
@@ -112,7 +122,32 @@ module Scheme
             mod(a*b,x0)
         end
 
-        return Encrypt, Decrypt, Recrypt, Add, Mult
+        KeyCorrect = function()
+            a = rho >= 2*lam #brute force noise attack
+            if !a
+                println("rho >= ", 2*lam)
+            end
+            b = eta >= alphai + rhoi + 2 + logl #correct decryption
+            if !b
+                println("eta >= ", alphai + rhoi + 2 + logl)
+            end
+            c = eta >= rho * (lam*(log(lam)^2)) #squashed decryption circuit
+            if !c
+                println("eta >= ", rho * (lam*(log(lam)^2)))
+            end
+            #d = gamma lattice attacks
+            e = alpha * tau >= gam + lam
+            if !e
+                println("alpha * tau >= ", gam + lam)
+            end
+            f = tau >= l * (rhoi+2) + lam
+            if !f
+                println("tau >= ", l * (rhoi+2) + lam)
+            end
+            return a & b & c & e & f
+        end
+
+        return Encrypt, Decrypt, Recrypt, Add, Mult, KeyCorrect
 
     end
 
@@ -131,11 +166,16 @@ module Scheme
     end
 
     function sum_binary(a::Array{BigInt,1}, b::Array{BigInt,1})
-        c::Array{BigInt,1} = [a[0]+b[0]]
-        carry::BigInt = a[0]*b[0]
+        c::Array{BigInt,1} = [a[1]+b[1]]
+        carry::BigInt = a[1]*b[1]
 
-        #TODO
-
+        for i=2:(length(a)-1)
+            carry2 = (a[i]+b[i])*carry+a[i]*b[i]
+            append!(c, a[i]+b[i]+carry)
+            carry = carry2
+        end
+        append!(c, a[length(a)]+b[length(b)]+carry)
+        return c
     end
 
     function kd(i,j)
@@ -262,6 +302,5 @@ module Scheme
             return list[i]::BigInt
         end
     end
-
 
 end
