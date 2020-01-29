@@ -83,7 +83,6 @@ module Scheme
 
                 #multiply by 2^n bits of precision
                 zi_int::Int64 = Base.trunc(Int64, zim*(2^n))
-                #println(zi_int)
 
                 zi_bin::Array{Int64,1} = to_binary(zi_int, (n+1))
                 #println(zi_bin)
@@ -94,18 +93,26 @@ module Scheme
             z_sk::Array{BigInt,2} = [z[i,j]*o[i] for i=1:Theta, j=1:(n+1)]
 
             TEMP::Array{Array{Int64,1},2} = [Decrypt(z_sk[i,j]) for i=1:Theta, j=1:(n+1)]
+#=
             for i=1:Theta
-                #print(z[i,:])
+                print(z[i,:])
                 for j=1:(n+1)
                     print(findall(x->x==1, TEMP[i,j]))
                 end
                 print("s =", s[:,i])
                 print("\n\n\n")
-            end
+            end =#
 
             a::Array{BigInt,1} = zeros(Int64,n+1)
+            print(z)
+
+
             for i=1:Theta
+                println(z[i,:])
+                print("s =", s[:,i])
                 a = sum_binary(a,z_sk[i,:])
+                println([Decrypt(a[i]) for i=1:(n+1)])
+                println("\n\n")
             end
 
             round::BigInt = a[length(a)] + a[length(a)-1] + (c & 1)
@@ -166,15 +173,17 @@ module Scheme
     end
 
     function sum_binary(a::Array{BigInt,1}, b::Array{BigInt,1})
-        c::Array{BigInt,1} = [a[1]+b[1]]
+        c::Array{BigInt,1} = zeros(BigInt, length(a))
+
+        c[1] = a[1]+b[1]
         carry::BigInt = a[1]*b[1]
 
         for i=2:(length(a)-1)
             carry2 = (a[i]+b[i])*carry+a[i]*b[i]
-            append!(c, a[i]+b[i]+carry)
+            c[i] = a[i]+b[i]+carry
             carry = carry2
         end
-        append!(c, a[length(a)]+b[length(b)]+carry)
+        c[length(a)] = a[length(a)]+b[length(a)]+carry
         return c
     end
 
@@ -224,9 +233,11 @@ module Scheme
             u_mults::Array{BigInt,1} = [s[j,i]*u_draft[i] for i=1:Theta]
             u_sum::BigInt = mod(reduce(+, u_mults),kapsq)
 
+            indicies = findall(x->x==1, s[j,:])
+
             while u_sum != xpj
                 #pick random index
-                v = rand(1:l) #this is done differently than before, make sure ok
+                v = rand(indicies)
 
                 #change corresponding using
                 u_mults[v] = 0
