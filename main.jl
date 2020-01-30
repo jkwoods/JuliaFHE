@@ -18,8 +18,7 @@ println("Key Made")
 println(KeyCorrect())
 
 one  = [1,1,1,1,1,1,1,1,1,1]
-zero = [0,1,1,0,0,1,1,1,0,0]
-br =   [1,1,1,1,0,0,0,1,1,0]
+zero = [0,0,0,0,0,0,0,0,0,0]
 
 println("Encrypt")
 c1 = Encrypt(one)
@@ -29,11 +28,20 @@ cb = Encrypt(br)
 a = Mult(c1,c0)
 println(Decrypt(a))
 
-b = Mult(a,c1)
-println(Decrypt(b))
-
 a = Recrypt(a)
 println(Decrypt(a))
 
-b = Mult(a,c1)
-println(Decrypt(b))
+a = Mult(c1,a)
+println(Decrypt(a))
+
+#b = Mult(a,c1)
+#println(Decrypt(b))
+
+#=a = Recrypt(a)
+println(Decrypt(a))
+
+g = Mult(a,c1)
+println(Decrypt(g))
+
+g = Recrypt(g)
+println(Decrypt(g))=#

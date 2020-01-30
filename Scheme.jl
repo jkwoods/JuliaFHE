@@ -104,20 +104,21 @@ module Scheme
             end =#
 
             a::Array{BigInt,1} = zeros(Int64,n+1)
-            print(z)
+            #print(z)
 
 
             for i=1:Theta
-                println(z[i,:])
-                print("s =", s[:,i])
+                #println(z[i,:])
+                #print("s =", s[:,i])
                 a = sum_binary(a,z_sk[i,:])
-                println([Decrypt(a[i]) for i=1:(n+1)])
-                println("\n\n")
+                #println([Decrypt(a[i]) for i=1:(n+1)])
+                #println("\n\n")
             end
+
 
             round::BigInt = a[length(a)] + a[length(a)-1] + (c & 1)
 
-            return c
+            return round
 
         end
 
@@ -226,18 +227,18 @@ module Scheme
         kapsq::BigInt = 2^(kap+1)
 
         seed = time() #TODO better seed
-        u_draft::Array{BigInt,1} = pseudo_random_ints(seed,Theta,kapsq)
+        u::Array{BigInt,1} = pseudo_random_ints(seed,Theta,kapsq)
 
         for j=1:l
             xpj::BigInt = fld((2^kap),p[j])
-            u_mults::Array{BigInt,1} = [s[j,i]*u_draft[i] for i=1:Theta]
+            u_mults::Array{BigInt,1} = [s[j,i]*u[i] for i=1:Theta]
             u_sum::BigInt = mod(reduce(+, u_mults),kapsq)
 
             indicies = findall(x->x==1, s[j,:])
 
             while u_sum != xpj
                 #pick random index
-                v = rand(indicies)
+                v = indicies[1]
 
                 #change corresponding using
                 u_mults[v] = 0
@@ -250,14 +251,14 @@ module Scheme
                     new_u -= kapsq
                 end
 
-                u_draft[v] = new_u
+                u[v] = new_u
 
                 #redo for while check
-                u_mults = [s[j,i]*u_draft[i] for i=1:Theta]
+                u_mults = [s[j,i]*u[i] for i=1:Theta]
                 u_sum = mod(reduce(+, u_mults),kapsq)
             end
         end
-        return u_draft
+        return u
     end
 
     function make_deltas(len::Int64,x0::BigInt,var_rho::BigInt,rhoi::BigInt,e_range::BigInt,l::Int64,p::Array{BigInt,1},pi::BigInt,s::Array{Int64,2},switch::Int64)
