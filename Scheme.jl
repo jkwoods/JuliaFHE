@@ -71,6 +71,31 @@ module Scheme
             [mod(mod_near(c,p[i]),2) for i in 1:l]
         end
 
+        Decrypt_sq = function(c::BigInt)
+            #expand
+            z::Array{Float64,1} = zeros(Int64,Theta)
+            kap2::BigInt = 2^kap
+
+            for i=1:Theta
+                yi = u[i]//kap2
+                zi = c * yi
+                zim = mod(zi,2)
+
+                #multiply by 2^n bits of precision
+                zi_int::Int64 = Base.trunc(Int64, zim*(2^(n+1)))
+
+                zi_flt::Float64 = zi_int / (2^(n+1))
+
+                z[i] = zi_flt
+            end
+
+            m::Array{} = [mod(round(sum([s[j,i]*z[i] for i=1:Theta])),2) + mod(c,2) for j=1:l]
+            println(m)
+
+            return m
+
+        end
+
         Recrypt = function(c::BigInt)
             #expand
             z::Array{Int64,2} = zeros(Int64,Theta,n+1)
@@ -82,7 +107,7 @@ module Scheme
                 zim = mod(zi,2)
 
                 #multiply by 2^n bits of precision
-                zi_int::Int64 = Base.trunc(Int64, zim*(2^n))
+                zi_int::Int64 = Base.trunc(Int64, zim*(2^n)) #TODO THIS IS THE PROBLEM FIX IT - bits of precision are too low
 
                 zi_bin::Array{Int64,1} = to_binary(zi_int, (n+1))
                 #println(zi_bin)
@@ -111,7 +136,7 @@ module Scheme
                 #println(z[i,:])
                 #print("s =", s[:,i])
                 a = sum_binary(a,z_sk[i,:])
-                #println([Decrypt(a[i]) for i=1:(n+1)])
+                #println([Decrypt(a[i]) for i=1:(n+1)],"\n")
                 #println("\n\n")
             end
 
@@ -155,7 +180,7 @@ module Scheme
             return a & b & c & e & f
         end
 
-        return Encrypt, Decrypt, Recrypt, Add, Mult, KeyCorrect
+        return Encrypt, Decrypt, Decrypt_sq, Recrypt, Add, Mult, KeyCorrect
 
     end
 
