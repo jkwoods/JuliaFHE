@@ -12,44 +12,42 @@ alpha   = 936
 tau     = 412
 l       = 10
 
-Encrypt, Decrypt, Decrypt_sq, Recrypt, Add, Mult, KeyCorrect = Scheme.generate(lam,rho,eta,gam,Theta,alpha,tau,l)
+Encrypt, Decrypt, Recrypt, Add, Mult, KeyCorrect = Scheme.generate(lam,rho,eta,gam,Theta,alpha,tau,l)
 println("Key Made")
 
 println(KeyCorrect())
 
 one  = [1,1,1,1,1,1,1,1,1,1]
-zero = [0,0,0,0,0,0,0,0,0,0]
+zero = [0,0,0,0,0,0,1,0,0,0]
 
 println("Encrypt")
 c1 = Encrypt(one)
 c0 = Encrypt(zero)
-cb = Encrypt(br)
-
-o = big(1)
-z = big(0)
-
-println(Decrypt(o))
-println(Decrypt(z))
-
-Decrypt_sq(o)
-
-println(Decrypt(Recrypt(o)))
-#println(Decrypt(Recrypt(z)))
+#cb = Encrypt(br)
 
 
-#a = Mult(c1,c0)
-#println(Decrypt(a))
+println(Decrypt(c1))
+println(Decrypt(c0))
 
-#a = Recrypt(a)
-#println(Decrypt(a))
+#Decrypt_sq(c0)
 
-#a = Mult(c1,a)
-#println(Decrypt(a))
+println(Decrypt(Recrypt(c1)))
+println(Decrypt(Recrypt(c0)))
 
-#b = Mult(a,c1)
-#println(Decrypt(b))
+a = Mult(c1,c0)
+println(Decrypt(a))
 
-#=a = Recrypt(a)
+a = Recrypt(a)
+println(Decrypt(a))
+
+a = Mult(c1,a)
+println(Decrypt(a))
+
+b = Mult(a,c1)
+println(Decrypt(b))
+
+#=
+a = Recrypt(a)
 println(Decrypt(a))
 
 g = Mult(a,c1)

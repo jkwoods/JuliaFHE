@@ -107,12 +107,12 @@ module Scheme
                 zim = mod(zi,2)
 
                 #multiply by 2^n bits of precision
-                zi_int::Int64 = Base.trunc(Int64, zim*(2^n)) #TODO THIS IS THE PROBLEM FIX IT - bits of precision are too low
+                zi_int::Int64 = Base.round(Int64, zim*(2^n))
 
                 zi_bin::Array{Int64,1} = to_binary(zi_int, (n+1))
                 #println(zi_bin)
 
-                z[i,:] = zi_bin
+                z[i,:] = zi_bin #view(zi_bin, 2:(n+2)) #take only a slice
             end
 
             z_sk::Array{BigInt,2} = [z[i,j]*o[i] for i=1:Theta, j=1:(n+1)]
@@ -180,7 +180,7 @@ module Scheme
             return a & b & c & e & f
         end
 
-        return Encrypt, Decrypt, Decrypt_sq, Recrypt, Add, Mult, KeyCorrect
+        return Encrypt, Decrypt, Recrypt, Add, Mult, KeyCorrect
 
     end
 
