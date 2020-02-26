@@ -25,7 +25,6 @@ c1 = Encrypt(one)
 c0 = Encrypt(zero)
 #cb = Encrypt(br)
 
-
 println(Decrypt(c1))
 println(Decrypt(c0))
 

@@ -51,16 +51,32 @@ module Scheme
 
         e_range::BigInt      = fld(2^(lam+logl+(l*eta)),pi) #-1
 
-        x::Array{BigInt,1}   = make_deltas(tau,x0,(rhoi-1),rhoi,e_range,l,p,pi,s,0)
-        xi::Array{BigInt,1}  = make_deltas(l,x0,rho,rhoi,e_range,l,p,pi,s,1)
-        ii::Array{BigInt,1}  = make_deltas(l,x0,rho,rhoi,e_range,l,p,pi,s,2)
+        x_seed::Int64   = abs(rand(Int64))
+        xi_seed::Int64  = abs(rand(Int64)+13)
+        ii_seed::Int64  = abs(rand(Int64)+3)
+        o_seed::Int64   = abs(rand(Int64)+7)
 
-        u::Array{BigInt,1}   = make_u(p,l,Theta,kap,s)
-        o::Array{BigInt,1}   = make_deltas(Theta,x0,rho,rhoi,e_range,l,p,pi,s,3)
+        u_seed::Int64   = abs(rand(Int64)+5)
+
+        x_deltas::Array{BigInt,1}   = make_deltas(x_seed,tau,x0,(rhoi-1),rhoi,e_range,l,p,pi,s,0)
+        xi_deltas::Array{BigInt,1}  = make_deltas(xi_seed,l,x0,rho,rhoi,e_range,l,p,pi,s,1)
+        ii_deltas::Array{BigInt,1}  = make_deltas(ii_seed,l,x0,rho,rhoi,e_range,l,p,pi,s,2)
+
+        u_front::Array{BigInt,1}    = make_u(u_seed,p,l,Theta,kap,s)
+        o_deltas::Array{BigInt,1}   = make_deltas(o_seed,Theta,x0,rho,rhoi,e_range,l,p,pi,s,3)
 
         Encrypt = function(m::Array{Int64,1})
             b::Array{BigInt,1}   = rand((-(2^alpha)+1:2^alpha),tau)
             bi::Array{BigInt,1}  = rand((-(2^alphai)+1:2^alphai),l)
+
+            seed = time() #TODO better seed
+            x_Chi::Array{BigInt,1} = pseudo_random_ints(x_seed,tau,x0)
+            xi_Chi::Array{BigInt,1} = pseudo_random_ints(xi_seed,l,x0)
+            ii_Chi::Array{BigInt,1} = pseudo_random_ints(ii_seed,l,x0)
+
+            x::Array{BigInt,1}   = x_Chi .- x_deltas
+            xi::Array{BigInt,1}  = xi_Chi .- xi_deltas
+            ii::Array{BigInt,1}  = ii_Chi .- ii_deltas
 
             sum::BigInt = reduce(+,(m .* xi)) + reduce(+, (b .* x)) + reduce(+,(bi .* ii)) #TODO check if broadcasting is what we want here
 
@@ -72,6 +88,11 @@ module Scheme
         end
 
         Decrypt_sq = function(c::BigInt)
+            #get u
+            kapsq::BigInt = 2^(kap+1)
+            u::Array{BigInt,1} = pseudo_random_ints(u_seed,Theta,kapsq)
+            u[1:l] = u_front
+
             #expand
             z::Array{Float64,1} = zeros(Int64,Theta)
             kap2::BigInt = 2^kap
@@ -97,6 +118,11 @@ module Scheme
         end
 
         Recrypt = function(c::BigInt)
+            #get u
+            kapsq::BigInt = 2^(kap+1)
+            u::Array{BigInt,1} = pseudo_random_ints(u_seed,Theta,kapsq)
+            u[1:l] = u_front
+
             #expand
             z::Array{Int64,2} = zeros(Int64,Theta,n+1)
             kap2::BigInt = 2^kap
@@ -114,6 +140,9 @@ module Scheme
 
                 z[i,:] = zi_bin #view(zi_bin, 2:(n+2)) #take only a slice
             end
+
+            o_Chi::Array{BigInt,1} = pseudo_random_ints(o_seed,Theta,x0)
+            o::Array{BigInt,1}   = o_Chi .- o_deltas
 
             z_sk::Array{BigInt,2} = [z[i,j]*o[i] for i=1:Theta, j=1:(n+1)]
 
@@ -248,47 +277,41 @@ module Scheme
         return mod(sum,pi)
     end
 
-    function make_u(p::Array{BigInt,1},l::Int64,Theta::Int64,kap::BigInt,s::Array{Int64,2})
+    function make_u(u_seed::Int64,p::Array{BigInt,1},l::Int64,Theta::Int64,kap::BigInt,s::Array{Int64,2})
         kapsq::BigInt = 2^(kap+1)
 
-        seed = time() #TODO better seed
-        u::Array{BigInt,1} = pseudo_random_ints(seed,Theta,kapsq)
+        u::Array{BigInt,1} = pseudo_random_ints(u_seed,Theta,kapsq)
 
+        n::Int64 = 1
         for j=1:l
             xpj::BigInt = fld((2^kap),p[j])
             u_mults::Array{BigInt,1} = [s[j,i]*u[i] for i=1:Theta]
             u_sum::BigInt = mod(reduce(+, u_mults),kapsq)
 
-            indicies = findall(x->x==1, s[j,:])
+            v = n
+            n = n+1
 
-            while u_sum != xpj
-                #pick random index
-                v = indicies[1]
-
-                #change corresponding using
-                u_mults[v] = 0
-                v_sum::BigInt = reduce(+, u_mults)
-                new_u::BigInt = kapsq - v_sum + xpj
-                while new_u < 0
-                    new_u += kapsq
-                end
-                while new_u >= kapsq
-                    new_u -= kapsq
-                end
-
-                u[v] = new_u
-
-                #redo for while check
-                u_mults = [s[j,i]*u[i] for i=1:Theta]
-                u_sum = mod(reduce(+, u_mults),kapsq)
+            #change corresponding using
+            u_mults[v] = 0
+            v_sum::BigInt = reduce(+, u_mults)
+            new_u::BigInt = kapsq - v_sum + xpj
+            while new_u < 0
+                new_u += kapsq
             end
+            while new_u >= kapsq
+                new_u -= kapsq
+            end
+
+            u[v] = new_u
+
         end
-        return u
+        front_u::Array{BigInt,1} = u[1:l]
+
+        return front_u
     end
 
-    function make_deltas(len::Int64,x0::BigInt,var_rho::BigInt,rhoi::BigInt,e_range::BigInt,l::Int64,p::Array{BigInt,1},pi::BigInt,s::Array{Int64,2},switch::Int64)
+    function make_deltas(seed::Int64,len::Int64,x0::BigInt,var_rho::BigInt,rhoi::BigInt,e_range::BigInt,l::Int64,p::Array{BigInt,1},pi::BigInt,s::Array{Int64,2},switch::Int64)
         #make PRI
-        seed = time() #TODO better seed
         Chi::Array{BigInt,1} = pseudo_random_ints(seed,len,x0)
 
         #make deltas
@@ -312,13 +335,13 @@ module Scheme
         deltas::Array{BigInt,1} = temp .+ (E .* pi) .- crts
 
         #make the list of PRI - deltas
-        x::Array{BigInt,1} = Chi .- deltas
-        return x
+        return deltas
     end
 
-    function pseudo_random_ints(seed,len::Int64,range::BigInt)
-        #seed!(seed) TODO
-        return rand(1:range, len)
+    function pseudo_random_ints(seed::Int64,len::Int64,range::BigInt)
+        rng = Random.MersenneTwister(0)
+        Random.seed!(rng, seed)
+        return rand(rng, 1:range, len)
     end
 
     function random_prime(lo,hi::BigInt)
