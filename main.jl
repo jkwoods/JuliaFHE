@@ -75,8 +75,8 @@ function test()
     println("Key Time")
     @time Encrypt, Decrypt, Recrypt, Add, Mult, KeyCorrect = Scheme.generate(lam,rho,eta,gam,Theta,alpha,tau,l)
 
-    a = [0,1,0,1,0,1,0,1,0,1]
-    b = [0,1,0,1,0,1,0,1,0,1]
+    a = [0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0]
+    b = [0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0]
     ca = Encrypt(a)
     println("Encrypt Time")
     @time cb = Encrypt(b)

@@ -25,7 +25,10 @@ module Scheme
         kap::BigInt          = 64*(gam÷64+1)
         logl::Int64          = round(Int64,log(2,l))
         #p_gen                = list()
-        p::Array{BigInt,1}   = [random_prime(2^big(eta-1),2^big(eta)) for i=1:l]#[p_gen() for i=1:l]
+        p::Array{BigInt,1}   = zeros(BigInt,l)
+        for i=1:l
+            p[i] = random_prime(2^big(eta-1),2^big(eta)) #this should be thread safe in v>=1.3.0
+        end
         pi::BigInt           = reduce(*,p)
 
         q0::BigInt           = 2^gam
@@ -330,9 +333,17 @@ module Scheme
         Chi::Array{BigInt,1} = pseudo_random_ints(seed,len,x0)
 
         #make deltas
-        r::Array{BigInt,2} = rand((-(2^var_rho)+1:(2^var_rho)-1),len,l)
-        E::Array{BigInt,1} = rand((1:e_range),len)
-        twor::Array{BigInt,2} = r .* 2
+        r::Array{BigInt,2} = zeros(BigInt,len,l)
+        E::Array{BigInt,1} = zeros(BigInt,len)
+        twor::Array{BigInt,2} = zeros(BigInt,len,l)
+
+        Threads.@threads for i=1:len
+            Threads.@threads for j=1:l
+                r[i,j] = rand((-(2^var_rho)+1:(2^var_rho)-1))
+                twor[i,j] = r[i,j] * 2
+            end
+            E[i] = rand((1:e_range))
+        end
 
         crts::Array{BigInt,1} = zeros(BigInt,len)
         if switch == 0
@@ -374,7 +385,7 @@ module Scheme
     function random_prime(lo,hi::BigInt)
         possible::BigInt = rand((lo+1):hi)
         while !Primes.isprime(possible)
-            possible = rand(lo:hi)
+            possible = rand((lo+1):hi)
         end
         return possible
     end
