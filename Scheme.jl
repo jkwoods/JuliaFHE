@@ -4,8 +4,9 @@ module Scheme
     import(Primes)
     export generate
 
+    #TODO make sure zeros is used right in all replacements
     #TODO make sure types are not being converted/this is still (relatively) fast
-    #TODO put pri stuff in the right places, etc
+    #TODO rand parallelization
 
     function generate(p_lam,p_rho,p_eta,p_gam,p_Theta,p_alpha,p_tau,p_l)
         lam::BigInt     = p_lam
@@ -23,8 +24,8 @@ module Scheme
         theta::Int64         = Theta÷l
         kap::BigInt          = 64*(gam÷64+1)
         logl::Int64          = round(Int64,log(2,l))
-        p_gen                = list()
-        p::Array{BigInt,1}   = [p_gen() for i=1:l]
+        #p_gen                = list()
+        p::Array{BigInt,1}   = [random_prime(2^big(eta-1),2^big(eta)) for i=1:l]#[p_gen() for i=1:l]
         pi::BigInt           = reduce(*,p)
 
         q0::BigInt           = 2^gam
@@ -74,17 +75,29 @@ module Scheme
             xi_Chi::Array{BigInt,1} = pseudo_random_ints(xi_seed,l,x0)
             ii_Chi::Array{BigInt,1} = pseudo_random_ints(ii_seed,l,x0)
 
-            x::Array{BigInt,1}   = x_Chi .- x_deltas
-            xi::Array{BigInt,1}  = xi_Chi .- xi_deltas
-            ii::Array{BigInt,1}  = ii_Chi .- ii_deltas
+            x::Array{BigInt,1} = zeros(BigInt, tau)#x_Chi .- x_deltas
+            xi::Array{BigInt,1} = zeros(BigInt, l)#xi_Chi .- xi_deltas
+            ii::Array{BigInt,1} = zeros(BigInt, l)#ii_Chi .- ii_deltas
 
-            sum::BigInt = reduce(+,(m .* xi)) + reduce(+, (b .* x)) + reduce(+,(bi .* ii)) #TODO check if broadcasting is what we want here
+            Threads.@threads for i = 1:tau
+                x[i] = (x_Chi[i] - x_deltas[i])*b[i]
+            end
+            Threads.@threads for i = 1:l
+                xi[i] = (xi_Chi[i] - xi_deltas[i])*m[i]
+                ii[i] = (ii_Chi[i] - ii_deltas[i])*bi[i]
+            end
+
+            sum::BigInt = reduce(+,xi) + reduce(+,x) + reduce(+,ii)
 
             return mod_near(sum,x0)
         end
 
         Decrypt = function(c::BigInt)
-            [mod(mod_near(c,p[i]),2) for i in 1:l]
+            m::Array{BigInt,1} = zeros(l)
+            Threads.@threads for i = 1:l
+                m[i] = mod(mod_near(c,p[i]),2)
+            end
+            return m
         end
 
         Decrypt_sq = function(c::BigInt)
@@ -123,11 +136,18 @@ module Scheme
             u::Array{BigInt,1} = pseudo_random_ints(u_seed,Theta,kapsq)
             u[1:l] = u_front
 
+            #get o
+            o_Chi::Array{BigInt,1} = pseudo_random_ints(o_seed,Theta,x0)
+            o::Array{BigInt,1}   = zeros(BigInt, Theta)
+
             #expand
             z::Array{Int64,2} = zeros(Int64,Theta,n+1)
+            z_sk::Array{BigInt,2} = zeros(BigInt,Theta,n+1)
             kap2::BigInt = 2^kap
 
-            for i=1:Theta
+            Threads.@threads for i=1:Theta
+                o[i] = o_Chi[i] - o_deltas[i]
+
                 yi = u[i]//kap2
                 zi = c * yi
                 zim = mod(zi,2)
@@ -139,14 +159,14 @@ module Scheme
                 #println(zi_bin)
 
                 z[i,:] = zi_bin #view(zi_bin, 2:(n+2)) #take only a slice
+
+                Threads.@threads for j = 1:(n+1)
+                    z_sk[i,j] = z[i,j]*o[i]
+                end
             end
 
-            o_Chi::Array{BigInt,1} = pseudo_random_ints(o_seed,Theta,x0)
-            o::Array{BigInt,1}   = o_Chi .- o_deltas
 
-            z_sk::Array{BigInt,2} = [z[i,j]*o[i] for i=1:Theta, j=1:(n+1)]
-
-            TEMP::Array{Array{Int64,1},2} = [Decrypt(z_sk[i,j]) for i=1:Theta, j=1:(n+1)]
+            ##TEMP::Array{Array{Int64,1},2} = [Decrypt(z_sk[i,j]) for i=1:Theta, j=1:(n+1)]
 #=
             for i=1:Theta
                 print(z[i,:])
@@ -158,17 +178,9 @@ module Scheme
             end =#
 
             a::Array{BigInt,1} = zeros(Int64,n+1)
-            #print(z)
-
-
             for i=1:Theta
-                #println(z[i,:])
-                #print("s =", s[:,i])
                 a = sum_binary(a,z_sk[i,:])
-                #println([Decrypt(a[i]) for i=1:(n+1)],"\n")
-                #println("\n\n")
             end
-
 
             round::BigInt = a[length(a)] + a[length(a)-1] + (c & 1)
 
@@ -282,14 +294,17 @@ module Scheme
 
         u::Array{BigInt,1} = pseudo_random_ints(u_seed,Theta,kapsq)
 
-        n::Int64 = 1
         for j=1:l
             xpj::BigInt = fld((2^kap),p[j])
-            u_mults::Array{BigInt,1} = [s[j,i]*u[i] for i=1:Theta]
+
+            u_mults::Array{BigInt,1} = zeros(BigInt,Theta)
+            Threads.@threads for i=1:Theta
+                u_mults[i] = s[j,i]*u[i]
+            end
+
             u_sum::BigInt = mod(reduce(+, u_mults),kapsq)
 
-            v = n
-            n = n+1
+            v = j
 
             #change corresponding using
             u_mults[v] = 0
@@ -321,18 +336,30 @@ module Scheme
 
         crts::Array{BigInt,1} = zeros(BigInt,len)
         if switch == 0
-            crts = [CRT(pi,p,twor[i,:]) for i=1:len]
+            Threads.@threads for i = 1:len
+                crts[i] = CRT(pi,p,twor[i,:])
+            end
         elseif switch == 1
-            crts = [CRT(pi,p,[twor[i,j]+kd(i,j) for j=1:l]) for i=1:len]
+            Threads.@threads for i = 1:len
+                crts[i] = CRT(pi,p,[twor[i,j]+kd(i,j) for j=1:l])
+            end
         elseif switch == 2
             rhoisq::BigInt = 2^(rhoi+1)
-            crts = [CRT(pi,p,[twor[i,j]+(kd(i,j)*rhoisq) for j=1:l]) for i=1:len]
+            Threads.@threads for i = 1:len
+                crts[i] = CRT(pi,p,[twor[i,j]+(kd(i,j)*rhoisq) for j=1:l])
+            end
         else #o
-            crts = [CRT(pi,p,[twor[i,j]+s[j,i] for j=1:l]) for i=1:len]
+            Threads.@threads for i = 1:len
+                crts[i] = CRT(pi,p,[twor[i,j]+s[j,i] for j=1:l])
+            end
         end
 
-        temp::Array{BigInt,1} = [mod(Chi[i],pi) for i=1:len] #Chi .% pi #check if we can condense
-        deltas::Array{BigInt,1} = temp .+ (E .* pi) .- crts
+        temp::Array{BigInt,1} = zeros(BigInt,len)
+        deltas::Array{BigInt,1} = zeros(BigInt,len)
+        Threads.@threads for i = 1:len
+            temp[i] = mod(Chi[i],pi)
+            deltas[i] = temp[i] + (E[i] * pi) - crts[i]
+        end
 
         #make the list of PRI - deltas
         return deltas

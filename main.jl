@@ -39,13 +39,19 @@ println(Decrypt(a))
 a = Recrypt(a)
 println(Decrypt(a))
 
+b = Add(c1,c0)
+println(Decrypt(b))
+
+b = Recrypt(b)
+println(Decrypt(b))
+
+#=
 a = Mult(c1,a)
 println(Decrypt(a))
 
 b = Mult(a,c1)
 println(Decrypt(b))
 
-#=
 a = Recrypt(a)
 println(Decrypt(a))
 
@@ -54,3 +60,36 @@ println(Decrypt(g))
 
 g = Recrypt(g)
 println(Decrypt(g))=#
+
+function test()
+    lam = 52
+    rho = 41
+    eta = 1558
+    gam = 1600000
+    Theta = 555
+    alpha = 1476
+    tau = 661
+    l = 37
+
+    Encrypt, Decrypt, Recrypt, Add, Mult, KeyCorrect = Scheme.generate(lam,rho,eta,gam,Theta,alpha,tau,l)
+    println("Key Time")
+    @time Encrypt, Decrypt, Recrypt, Add, Mult, KeyCorrect = Scheme.generate(lam,rho,eta,gam,Theta,alpha,tau,l)
+
+    a = [0,1,0,1,0,1,0,1,0,1]
+    b = [0,1,0,1,0,1,0,1,0,1]
+    ca = Encrypt(a)
+    println("Encrypt Time")
+    @time cb = Encrypt(b)
+
+    Decrypt(ca)
+    println("Decrypt Time")
+    @time Decrypt(cb)
+
+    ra = Recrypt(ca)
+    println("Recrypt Time")
+    @time rb = Recrypt(cb)
+
+
+end
+
+test()
