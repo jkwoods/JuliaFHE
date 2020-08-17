@@ -82,15 +82,16 @@ module Scheme
             xi::Array{BigInt,1} = zeros(BigInt, l)#xi_Chi .- xi_deltas
             ii::Array{BigInt,1} = zeros(BigInt, l)#ii_Chi .- ii_deltas
 
-            Threads.@threads for i = 1:tau
-                b_x[i] = (x_Chi[i] - x_deltas[i])*b[i]
-            end
+            
             Threads.@threads for i = 1:l
                 m_xi[i] = (xi_Chi[i] - xi_deltas[i])*m[i]
                 bi_ii[i] = (ii_Chi[i] - ii_deltas[i])*bi[i]
             end
+            Threads.@threads for i = 1:tau
+                b_x[i] = (x_Chi[i] - x_deltas[i])*b[i]
+            end
 
-            big_sum::BigInt = reduce(+,xi) + reduce(+,x) + reduce(+,ii)
+            big_sum::BigInt = reduce(+,m_xi) + reduce(+,b_x) + reduce(+,bi_ii)
             return mod_near(big_sum,x0)
         
         end
