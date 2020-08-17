@@ -83,11 +83,11 @@ module Scheme
             ii::Array{BigInt,1} = zeros(BigInt, l)#ii_Chi .- ii_deltas
 
             Threads.@threads for i = 1:tau
-                x[i] = (x_Chi[i] - x_deltas[i])*b[i]
+                b_x[i] = (x_Chi[i] - x_deltas[i])*b[i]
             end
             Threads.@threads for i = 1:l
-                xi[i] = (xi_Chi[i] - xi_deltas[i])*m[i]
-                ii[i] = (ii_Chi[i] - ii_deltas[i])*bi[i]
+                m_xi[i] = (xi_Chi[i] - xi_deltas[i])*m[i]
+                bi_ii[i] = (ii_Chi[i] - ii_deltas[i])*bi[i]
             end
 
             big_sum::BigInt = reduce(+,xi) + reduce(+,x) + reduce(+,ii)
