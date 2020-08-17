@@ -84,14 +84,14 @@ module Scheme
 
             
             Threads.@threads for i = 1:l
-                m_xi[i] = (xi_Chi[i] - xi_deltas[i])*m[i]
-                bi_ii[i] = (ii_Chi[i] - ii_deltas[i])*bi[i]
+                xi[i] = (xi_Chi[i] - xi_deltas[i])*m[i]
+                ii[i] = (ii_Chi[i] - ii_deltas[i])*bi[i]
             end
             Threads.@threads for i = 1:tau
-                b_x[i] = (x_Chi[i] - x_deltas[i])*b[i]
+                x[i] = (x_Chi[i] - x_deltas[i])*b[i]
             end
 
-            big_sum::BigInt = reduce(+,m_xi) + reduce(+,b_x) + reduce(+,bi_ii)
+            big_sum::BigInt = reduce(+,xi) + reduce(+,x) + reduce(+,ii)
             return mod_near(big_sum,x0)
         
         end
