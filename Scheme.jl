@@ -90,9 +90,9 @@ module Scheme
                 ii[i] = (ii_Chi[i] - ii_deltas[i])*bi[i]
             end
 
-            sum::BigInt = reduce(+,xi) + reduce(+,x) + reduce(+,ii)
-
-            return mod_near(sum,x0)
+            big_sum::BigInt = reduce(+,xi) + reduce(+,x) + reduce(+,ii)
+            return mod_near(big_sum,x0)
+        
         end
 
         Decrypt = function(c::BigInt)
